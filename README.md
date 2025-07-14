@@ -1,0 +1,1 @@
+Для компиляций рекоендую использовать GCC "g++ -std=c++17 -O2 -s -static-libgcc -static-libstdc++ realpackWin32.cpp resources.o -o RealPackInstaller.exe -mwindows -lole32 -loleaut32 -luuid -lurlmon -lshlwapi -lshell32"
