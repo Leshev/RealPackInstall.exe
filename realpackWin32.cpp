@@ -1,3 +1,7 @@
+// Author: Leshev.
+// Version app: 2.45. 
+
+
 #define _WIN32_WINNT 0x0600
 #define UNICODE
 #define _UNICODE
@@ -205,15 +209,15 @@ DWORD WINAPI InstallationThread(LPVOID lpParam) {
     fs::remove(zipPath);
     
     // Сохранение информации о версии после успешной установки
-    std::wstring versionFilePath = targetDir + L"\\version.txt";
-    std::ofstream versionFile(versionFilePath.c_str());
-    if (versionFile.is_open()) {
-        versionFile << "1"; // Укажите актуальную версию пакета
-        versionFile.close();
-        SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Версия сохранена");
-    } else {
-        SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Не удалось сохранить информацию о версии");
-    }
+    //std::wstring versionFilePath = targetDir + L"\\version.txt";
+    //std::ofstream versionFile(versionFilePath.c_str());
+   // if (versionFile.is_open()) {
+   //     versionFile << ""; // Укажите актуальную версию пакета
+       // versionFile.close();
+     //   SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Версия сохранена");
+   // } else {
+     //   SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Не удалось сохранить информацию о версии");
+   // }
     
     // Очищаем список сообщений перед выводом финального
     SendMessageW(GetDlgItem(hWnd, 1002), LB_RESETCONTENT, 0, 0);
@@ -378,7 +382,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         WINDOW_CLASS,
         WINDOW_TITLE,
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 500, 400,
+        CW_USEDEFAULT, CW_USEDEFAULT, 400, 150,
         NULL, NULL, hInstance, NULL);
 
     if (!hWnd) {
