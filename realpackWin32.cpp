@@ -31,9 +31,36 @@ DWORD WINAPI UpdateCheckThread(LPVOID lpParam);
 std::wstring GetTargetDirectory() {
     wchar_t userProfile[MAX_PATH];
     if (SHGetFolderPathW(NULL, CSIDL_PROFILE, NULL, 0, userProfile) != S_OK) {
+        MessageBoxW(NULL, L"Не удалось получить путь к профилю пользователя", L"Ошибка", MB_ICONERROR);
         return L"";
     }
-    return std::wstring(userProfile) + L"\\AppData\\Roaming\\MCGL\\MinecraftLauncher2\\repository\\mclient\\plugins\\realpack";
+    
+    std::wstring targetDir = std::wstring(userProfile) + L"\\AppData\\Roaming\\MCGL\\MinecraftLauncher2\\repository\\mclient\\plugins\\realpack";
+    
+    try {
+        // Проверяем и создаем все необходимые папки в пути
+        if (!fs::exists(targetDir)) {
+            if (!fs::create_directories(targetDir)) {
+                MessageBoxW(NULL, L"Не удалось создать целевую директорию", L"Ошибка", MB_ICONERROR);
+                return L"";
+            }
+            // Устанавливаем атрибуты папки (скрытая, если нужно)
+            SetFileAttributesW(targetDir.c_str(), FILE_ATTRIBUTE_NORMAL);
+        }
+        
+        // Проверяем, что это действительно папка и доступна для записи
+        if (!(GetFileAttributesW(targetDir.c_str()) & FILE_ATTRIBUTE_DIRECTORY)) {
+            MessageBoxW(NULL, L"Целевой путь не является директорией", L"Ошибка", MB_ICONERROR);
+            return L"";
+        }
+        
+        return targetDir;
+    } catch (const std::exception& e) {
+        std::wstring errorMsg = L"Ошибка при работе с файловой системой: ";
+        errorMsg += std::wstring_convert<std::codecvt_utf8<wchar_t>>().from_bytes(e.what());
+        MessageBoxW(NULL, errorMsg.c_str(), L"Ошибка", MB_ICONERROR);
+        return L"";
+    }
 }
 
 HRESULT DownloadFile(HWND hWnd, const std::wstring& url, const std::wstring& localPath) {
