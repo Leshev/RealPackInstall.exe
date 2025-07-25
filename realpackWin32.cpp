@@ -186,7 +186,6 @@ bool ReplaceFiles(HWND hWnd, const std::wstring& sourceDir, const std::wstring& 
 
 DWORD WINAPI InstallationThread(LPVOID lpParam) {
     HWND hWnd = (HWND)lpParam;
-    
     wchar_t tempPath[MAX_PATH];
     GetTempPathW(MAX_PATH, tempPath);
 
@@ -208,21 +207,10 @@ DWORD WINAPI InstallationThread(LPVOID lpParam) {
     fs::remove_all(extractPath);
     fs::remove(zipPath);
     
-    // Сохранение информации о версии после успешной установки
-    //std::wstring versionFilePath = targetDir + L"\\version.txt";
-    //std::ofstream versionFile(versionFilePath.c_str());
-   // if (versionFile.is_open()) {
-   //     versionFile << ""; // Укажите актуальную версию пакета
-       // versionFile.close();
-     //   SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Версия сохранена");
-   // } else {
-     //   SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Не удалось сохранить информацию о версии");
-   // }
-    
     // Очищаем список сообщений перед выводом финального
     SendMessageW(GetDlgItem(hWnd, 1002), LB_RESETCONTENT, 0, 0);
     // Выводим финальное сообщение
-    SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Установка успешно завершена!");
+    SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Установка realpack успешно завершена!");
     
     EnableWindow(GetDlgItem(hWnd, 1001), TRUE);
     EnableWindow(GetDlgItem(hWnd, 1003), TRUE);
@@ -238,7 +226,7 @@ DWORD WINAPI UpdateCheckThread(LPVOID lpParam) {
     std::wstring targetDir = GetTargetDirectory();
     std::wstring versionFilePath = targetDir + L"\\version.txt";
     
-    DWORD currentVersion = 0;
+    float currentVersion = 0.00f;
     if (fs::exists(versionFilePath)) {
         std::ifstream versionFile(versionFilePath.c_str());
         if (versionFile.is_open()) {
@@ -246,7 +234,7 @@ DWORD WINAPI UpdateCheckThread(LPVOID lpParam) {
             versionFile.close();
             
             wchar_t msg[256];
-            StringCchPrintfW(msg, 256, L"Текущая версия: %d", currentVersion);
+            StringCchPrintfW(msg, 256, L"Текущая версия: %.2f", currentVersion);
             SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)msg);
         }
     } else {
@@ -268,7 +256,7 @@ DWORD WINAPI UpdateCheckThread(LPVOID lpParam) {
     }
 
     // Читаем версию с сервера
-    DWORD remoteVersion = 0;
+    float remoteVersion = 0.00f;
     std::ifstream remoteVersionFile(remoteVersionPath.c_str());
     if (remoteVersionFile.is_open()) {
         remoteVersionFile >> remoteVersion;
@@ -276,58 +264,26 @@ DWORD WINAPI UpdateCheckThread(LPVOID lpParam) {
         fs::remove(remoteVersionPath);
         
         wchar_t msg[256];
-        StringCchPrintfW(msg, 256, L"Доступная версия: %d", remoteVersion);
+        StringCchPrintfW(msg, 256, L"Доступная версия: %.2f", remoteVersion);
         SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)msg);
     } else {
         SendMessageW(GetDlgItem(hWnd, 1002), LB_RESETCONTENT, 0, 0);
         SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Не удалось прочитать версию с сервера");
+        RunInstallation(hWnd);
         EnableWindow(GetDlgItem(hWnd, 1001), TRUE);
         EnableWindow(GetDlgItem(hWnd, 1003), TRUE);
         return 1;
     }
 
     if (remoteVersion > currentVersion) {
-        SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Доступно обновление! Начинаю установку...");
-        
-        // Вызываем процедуру установки
-        wchar_t zipUrl[MAX_PATH] = L"https://github.com/Leshev/realpack/raw/refs/heads/main/realpack.zip";
-        wchar_t zipPath[MAX_PATH];
-        PathCombineW(zipPath, tempPath, L"realpack.zip");
-        
-        wchar_t extractPath[MAX_PATH];
-        PathCombineW(extractPath, tempPath, L"realpack_extracted");
-        
-        if (FAILED(DownloadFile(hWnd, zipUrl, zipPath))) {
-            EnableWindow(GetDlgItem(hWnd, 1001), TRUE);
-            EnableWindow(GetDlgItem(hWnd, 1003), TRUE);
-            return 1;
-        }
-        
-        if (!ExtractZipWithPowerShell(hWnd, zipPath, extractPath)) {
-            EnableWindow(GetDlgItem(hWnd, 1001), TRUE);
-            EnableWindow(GetDlgItem(hWnd, 1003), TRUE);
-            return 1;
-        }
-        
-        if (!ReplaceFiles(hWnd, extractPath, targetDir)) {
-            EnableWindow(GetDlgItem(hWnd, 1001), TRUE);
-            EnableWindow(GetDlgItem(hWnd, 1003), TRUE);
-            return 1;
-        }
-        
-        // Обновляем информацию о версии
-        std::ofstream versionFile(versionFilePath.c_str());
-        if (versionFile.is_open()) {
-            versionFile << remoteVersion;
-            versionFile.close();
-        }
-        
-        // Очищаем список сообщений
+        SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Найдена новая версия, начинаю обновление...");
+        RunInstallation(hWnd);
         SendMessageW(GetDlgItem(hWnd, 1002), LB_RESETCONTENT, 0, 0);
-        // Выводим финальное сообщение
-        SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"Обновление успешно установлено!");
+    } else if (remoteVersion < currentVersion) {
+        SendMessageW(GetDlgItem(hWnd, 1002), LB_RESETCONTENT, 0, 0);
+        wchar_t msg[256];
+        SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)msg);
     } else {
-        // Очищаем список сообщений если версия актуальна
         SendMessageW(GetDlgItem(hWnd, 1002), LB_RESETCONTENT, 0, 0);
         SendMessageW(GetDlgItem(hWnd, 1002), LB_ADDSTRING, 0, (LPARAM)L"У вас актуальная версия");
     }
@@ -359,7 +315,7 @@ void CheckForUpdates(HWND hWnd) {
 
 int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow) {
     hInst = hInstance;
-
+	
     // Регистрация класса окна
     WNDCLASSEXW wcex = { sizeof(WNDCLASSEXW) };
 	wcex.style = CS_HREDRAW | CS_VREDRAW;
@@ -382,7 +338,7 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
         WINDOW_CLASS,
         WINDOW_TITLE,
         WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX,
-        CW_USEDEFAULT, CW_USEDEFAULT, 400, 150,
+        CW_USEDEFAULT, CW_USEDEFAULT, 500, 400,
         NULL, NULL, hInstance, NULL);
 
     if (!hWnd) {
@@ -404,21 +360,28 @@ int WINAPI WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine
 }
 
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) {
-    switch (message) {
+	switch (message) {
     case WM_CREATE: {
         // Создание кнопки установки
         CreateWindowW(
             L"BUTTON", L"Установить",
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_DEFPUSHBUTTON,
-            10, 10, 150, 30,
+            5, 10, 150, 30,
             hWnd, (HMENU)1001, hInst, NULL);
 
         // Создание кнопки проверки
         CreateWindowW(
-            L"BUTTON", L"Обновить",
+            L"BUTTON", L"Проверить обновления",
             WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
-            170, 10, 150, 30,
+            160, 10, 220, 30,
             hWnd, (HMENU)1003, hInst, NULL);
+			
+	// кнопка инфо
+        CreateWindowW(
+            L"BUTTON", L"Инфо",
+            WS_TABSTOP | WS_VISIBLE | WS_CHILD | BS_PUSHBUTTON,
+            385, 10, 100, 30,
+            hWnd, (HMENU)1004, hInst, NULL);
 
         // Создание списка логов
         CreateWindowW(
@@ -428,13 +391,28 @@ LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) 
             hWnd, (HMENU)1002, hInst, NULL);
         break;
     }
-	case WM_COMMAND: {
+case WM_COMMAND: {
     if (LOWORD(wParam) == 1001) { // Кнопка установки
         RunInstallation(hWnd);
     }
     else if (LOWORD(wParam) == 1003) { // Кнопка обновления
-        // Используем ту же функцию, что и для установки, но с проверкой версий
         CheckForUpdates(hWnd);
+    }
+    else if (LOWORD(wParam) == 1004) {
+        // Формируем информационное сообщение
+        std::wstring infoMessage = 
+    L"════════ RealPack ════════\n"
+    L"▸ Версия программы: 2.45" 
+    L"▸ Автор: Leshev\n"
+    L"════════ Помощь ════════\n"
+    L"• Для установки/восстановления нажмите 'Установить'\n"
+    L"• Для проверки обновлений нажмите 'Проверить обновления'\n\n"
+    L"════════ Поддержка ════════\n"
+    L"По вопросам пишите Leshev на форуме MCGL\n\n"
+    L"Спасибо за использование RealPack!";
+
+        // Выводим сообщение
+        MessageBoxW(hWnd, infoMessage.c_str(), L"Информация", MB_ICONINFORMATION | MB_OK);
     }
     break;
 }
