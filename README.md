@@ -1,1 +1,36 @@
-Для компиляций рекоендую использовать GCC "g++ -std=c++17 -O2 -s -static-libgcc -static-libstdc++ realpackWin32.cpp resources.o -o RealPackInstaller.exe -mwindows -lole32 -loleaut32 -luuid -lurlmon -lshlwapi -lshell32"
+# RealPack Installer
+
+Установщик и автообновление плагин-пака **RealPack** для Minecraft (лаунчер MCGL).
+Один exe: скачивает архив с GitHub, распаковывает и заменяет файлы плагина в профиле пользователя.
+
+![preview](preview.png)
+
+Окно «О программе»:
+
+![about](overlay.png)
+
+## Что нового в 3.0
+
+- **Новый интерфейс**: тёмное окно без системных рамок, свои кнопки, градиенты, анимации наведения, скруглённые углы и тень.
+- **Живой прогресс**: отдельные фазы «скачивание → распаковка → запись файлов» с процентами и журналом.
+- **Быстрее**: архив распаковывается системным `tar.exe` (Windows 10 1803+), PowerShell остался только как резервный путь. Больше не нужно ждать запуска `powershell -Command Expand-Archive`.
+- **Автопроверка обновлений** при запуске, с таймаутом 8 секунд — приложение не зависает без сети.
+- Версии «локально / в сети», кнопка «Открыть папку плагина», аккуратное окно «О программе».
+- DPI-aware: интерфейс остаётся чётким при масштабировании 125–200%.
+- Защита от параллельного запуска: второе окно не открывается.
+
+## Сборка
+
+Нужен MinGW-w64 (GCC) с `windres`. Пример для MSYS2 UCRT64:
+
+```bat
+windres --use-temp-file resources.rc -o resources.o
+g++ -std=c++17 -O2 -s -static -static-libgcc -static-libstdc++ ^
+    realpackWin32.cpp resources.o -o RealPackInstaller.exe ^
+    -mwindows -lole32 -loleaut32 -luuid -lurlmon -lshlwapi -lshell32 -lgdiplus
+```
+
+`-static` важен: без него exe потребует `libwinpthread-1.dll` и не запустится на чистой машине.
+Флаг `--use-temp-file` у `windres` нужен в окружениях, где не работает канал `popen`.
+
+Результат — один файл `RealPackInstaller.exe`, зависимостей нет.
